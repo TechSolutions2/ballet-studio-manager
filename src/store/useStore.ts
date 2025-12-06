@@ -1,5 +1,15 @@
 import { create } from 'zustand';
-import { branches, students, transactions, categories, type Branch, type Student, type Transaction, type TransactionCategory } from './mockData';
+import { branches, students, transactions, categories, type Branch, type Student, type Transaction, type TransactionCategory, type TransactionType } from './mockData';
+
+interface NewTransaction {
+  date: string;
+  description: string;
+  amount: number;
+  type: TransactionType;
+  categoryId: string;
+  branchId: string;
+  studentId?: string;
+}
 
 interface AppState {
   // Branch management
@@ -16,6 +26,7 @@ interface AppState {
   transactions: Transaction[];
   categories: TransactionCategory[];
   getFilteredTransactions: () => Transaction[];
+  addTransaction: (transaction: NewTransaction) => void;
   
   // UI State
   sidebarOpen: boolean;
@@ -47,6 +58,17 @@ export const useStore = create<AppState>((set, get) => ({
     const { selectedBranchId, transactions } = get();
     if (selectedBranchId === 'all') return transactions;
     return transactions.filter(t => t.branchId === selectedBranchId);
+  },
+  addTransaction: (transaction: NewTransaction) => {
+    const newTransaction: Transaction = {
+      ...transaction,
+      id: `trx-${Date.now()}-${Math.random()}`,
+    };
+    set((state) => ({
+      transactions: [newTransaction, ...state.transactions].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      ),
+    }));
   },
   
   // UI State
