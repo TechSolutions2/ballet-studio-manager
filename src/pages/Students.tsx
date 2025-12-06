@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react';
-import { Plus, UserPlus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { StudentTable } from '@/components/students/StudentTable';
 import { StudentFilters } from '@/components/students/StudentFilters';
-import { Button } from '@/components/ui/button';
+import { StudentModal } from '@/components/students/StudentModal';
 
 export default function Students() {
-  const { getFilteredStudents, selectedBranchId, branches } = useStore();
+  const { getFilteredStudents, selectedBranchId, branches, getGuardianById } = useStore();
   const allStudents = getFilteredStudents();
 
   const [search, setSearch] = useState('');
@@ -20,7 +20,8 @@ export default function Students() {
         const searchLower = search.toLowerCase();
         const matchesName = student.name.toLowerCase().includes(searchLower);
         const matchesEmail = student.email.toLowerCase().includes(searchLower);
-        const matchesGuardian = student.guardian.name.toLowerCase().includes(searchLower);
+        const guardian = getGuardianById(student.guardianId);
+        const matchesGuardian = guardian?.name.toLowerCase().includes(searchLower);
         if (!matchesName && !matchesEmail && !matchesGuardian) return false;
       }
 
@@ -35,7 +36,7 @@ export default function Students() {
 
       return true;
     });
-  }, [allStudents, search, levelFilter, statusFilter]);
+  }, [allStudents, search, levelFilter, statusFilter, getGuardianById]);
 
   const handleClearFilters = () => {
     setSearch('');
@@ -56,10 +57,7 @@ export default function Students() {
             {selectedBranchId !== 'all' && ` na ${selectedBranch?.name}`}
           </p>
         </div>
-        <Button>
-          <UserPlus className="h-4 w-4 mr-2" />
-          Novo Aluno
-        </Button>
+        <StudentModal />
       </div>
 
       {/* Filters */}

@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Alunos', href: '/alunos', icon: Users },
+  { name: 'Responsáveis', href: '/responsaveis', icon: GraduationCap },
   { name: 'Financeiro', href: '/financeiro', icon: Wallet },
   { name: 'Configurações', href: '/configuracoes', icon: Settings },
 ];

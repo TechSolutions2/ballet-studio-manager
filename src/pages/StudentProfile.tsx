@@ -34,9 +34,10 @@ const levelColors: Record<string, string> = {
 export default function StudentProfile() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getStudentById, branches } = useStore();
+  const { getStudentById, getGuardianById, branches } = useStore();
   
   const student = getStudentById(id || '');
+  const guardian = student ? getGuardianById(student.guardianId) : undefined;
 
   if (!student) {
     return (
@@ -150,28 +151,38 @@ export default function StudentProfile() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <p className="text-sm text-muted-foreground">Nome</p>
-                <p className="font-medium">{student.guardian.name}</p>
+            {guardian ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <p className="text-sm text-muted-foreground">Nome</p>
+                  <p className="font-medium">{guardian.name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Parentesco</p>
+                  <p className="font-medium">{guardian.relationship}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Telefone</p>
+                  <p className="font-medium">{guardian.phone}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Email</p>
+                  <p className="font-medium">{guardian.email}</p>
+                </div>
+                <div className="sm:col-span-2">
+                  <p className="text-sm text-muted-foreground">CPF</p>
+                  <p className="font-medium">{guardian.cpf}</p>
+                </div>
+                {guardian.address && (
+                  <div className="sm:col-span-2">
+                    <p className="text-sm text-muted-foreground">Endereço</p>
+                    <p className="font-medium">{guardian.address}</p>
+                  </div>
+                )}
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Parentesco</p>
-                <p className="font-medium">{student.guardian.relationship}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Telefone</p>
-                <p className="font-medium">{student.guardian.phone}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Email</p>
-                <p className="font-medium">{student.guardian.email}</p>
-              </div>
-              <div className="sm:col-span-2">
-                <p className="text-sm text-muted-foreground">CPF</p>
-                <p className="font-medium">{student.guardian.cpf}</p>
-              </div>
-            </div>
+            ) : (
+              <p className="text-muted-foreground">Responsável não encontrado</p>
+            )}
           </CardContent>
         </Card>
 
