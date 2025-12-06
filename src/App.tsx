@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Students from "./pages/Students";
 import StudentProfile from "./pages/StudentProfile";
+import Guardians from "./pages/Guardians";
 import Finance from "./pages/Finance";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/alunos" element={<Students />} />
             <Route path="/alunos/:id" element={<StudentProfile />} />
+            <Route path="/responsaveis" element={<Guardians />} />
             <Route path="/financeiro" element={<Finance />} />
             <Route path="/configuracoes" element={<Settings />} />
           </Route>

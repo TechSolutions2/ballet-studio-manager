@@ -1,8 +1,8 @@
-import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { Eye, MoreHorizontal, Mail, Phone } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Student } from '@/store/mockData';
+import { useStore } from '@/store/useStore';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -35,6 +35,7 @@ const statusLabels: Record<string, { label: string; className: string }> = {
 
 export function StudentTable({ students }: StudentTableProps) {
   const navigate = useNavigate();
+  const { getGuardianById } = useStore();
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
@@ -67,81 +68,85 @@ export function StudentTable({ students }: StudentTableProps) {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {students.map((student) => (
-              <tr 
-                key={student.id} 
-                className="table-row-hover cursor-pointer"
-                onClick={() => navigate(`/alunos/${student.id}`)}
-              >
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-9 w-9">
-                      <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
-                        {getInitials(student.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="text-sm font-medium">{student.name}</p>
-                      <p className="text-xs text-muted-foreground">{student.email}</p>
+            {students.map((student) => {
+              const guardian = getGuardianById(student.guardianId);
+              
+              return (
+                <tr 
+                  key={student.id} 
+                  className="table-row-hover cursor-pointer"
+                  onClick={() => navigate(`/alunos/${student.id}`)}
+                >
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-9 w-9">
+                        <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+                          {getInitials(student.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="text-sm font-medium">{student.name}</p>
+                        <p className="text-xs text-muted-foreground">{student.email}</p>
+                      </div>
                     </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="space-y-1">
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="space-y-1">
+                      <Badge 
+                        variant="outline" 
+                        className={cn("text-xs font-medium", levelColors[student.level])}
+                      >
+                        {student.level}
+                      </Badge>
+                      <p className="text-xs text-muted-foreground">{student.class}</p>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 hidden md:table-cell">
+                    <span className="text-sm">{student.age} anos</span>
+                  </td>
+                  <td className="px-4 py-3 hidden lg:table-cell">
+                    <div>
+                      <p className="text-sm">{guardian?.name || '-'}</p>
+                      <p className="text-xs text-muted-foreground">{guardian?.relationship || ''}</p>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
                     <Badge 
-                      variant="outline" 
-                      className={cn("text-xs font-medium", levelColors[student.level])}
+                      variant="outline"
+                      className={cn("text-xs font-medium border", statusLabels[student.paymentStatus].className)}
                     >
-                      {student.level}
+                      {statusLabels[student.paymentStatus].label}
                     </Badge>
-                    <p className="text-xs text-muted-foreground">{student.class}</p>
-                  </div>
-                </td>
-                <td className="px-4 py-3 hidden md:table-cell">
-                  <span className="text-sm">{student.age} anos</span>
-                </td>
-                <td className="px-4 py-3 hidden lg:table-cell">
-                  <div>
-                    <p className="text-sm">{student.guardian.name}</p>
-                    <p className="text-xs text-muted-foreground">{student.guardian.relationship}</p>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <Badge 
-                    variant="outline"
-                    className={cn("text-xs font-medium border", statusLabels[student.paymentStatus].className)}
-                  >
-                    {statusLabels[student.paymentStatus].label}
-                  </Badge>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/alunos/${student.id}`);
-                      }}>
-                        <Eye className="h-4 w-4 mr-2" />
-                        Ver perfil
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
-                        <Mail className="h-4 w-4 mr-2" />
-                        Enviar email
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
-                        <Phone className="h-4 w-4 mr-2" />
-                        Ligar
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/alunos/${student.id}`);
+                        }}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Ver perfil
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+                          <Mail className="h-4 w-4 mr-2" />
+                          Enviar email
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+                          <Phone className="h-4 w-4 mr-2" />
+                          Ligar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

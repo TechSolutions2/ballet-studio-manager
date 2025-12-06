@@ -13,11 +13,14 @@ export type PaymentStatus = 'em_dia' | 'pendente' | 'atrasado';
 export type StudentStatus = 'ativo' | 'inativo' | 'trancado';
 
 export interface Guardian {
+  id: string;
   name: string;
   phone: string;
   email: string;
   cpf: string;
   relationship: string;
+  address?: string;
+  studentIds: string[];
 }
 
 export interface PaymentHistory {
@@ -42,7 +45,7 @@ export interface Student {
   status: StudentStatus;
   paymentStatus: PaymentStatus;
   monthlyFee: number;
-  guardian: Guardian;
+  guardianId: string;
   paymentHistory: PaymentHistory[];
   photoUrl?: string;
 }
@@ -136,8 +139,9 @@ const generatePaymentHistory = (enrollmentDate: Date, monthlyFee: number): Payme
   return history.slice(-12);
 };
 
-// Generate students
-const generateStudents = (): Student[] => {
+// Generate guardians and students
+const generateGuardiansAndStudents = (): { guardians: Guardian[]; students: Student[] } => {
+  const guardians: Guardian[] = [];
   const students: Student[] = [];
   const branchIds = ['centro', 'zona-sul', 'zona-norte'];
   
@@ -166,8 +170,24 @@ const generateStudents = (): Student[] => {
     const paymentStatus: PaymentStatus = lastPayment?.status === 'pago' ? 'em_dia' : 
                                           lastPayment?.status === 'pendente' ? 'pendente' : 'atrasado';
     
+    const studentId = `std-${i + 1}`;
+    const guardianId = `grd-${i + 1}`;
+    
+    // Create guardian
+    guardians.push({
+      id: guardianId,
+      name: `${randomFrom(['Maria', 'Ana', 'Claudia', 'Patricia', 'Fernanda', 'Roberto', 'Carlos', 'João'])} ${lastName}`,
+      phone: `(11) 9${randomBetween(1000, 9999)}-${randomBetween(1000, 9999)}`,
+      email: `responsavel.${lastName.toLowerCase()}${i}@email.com`,
+      cpf: `${randomBetween(100, 999)}.${randomBetween(100, 999)}.${randomBetween(100, 999)}-${randomBetween(10, 99)}`,
+      relationship: randomFrom(['Mãe', 'Pai', 'Avó', 'Avô', 'Tio(a)']),
+      address: `Rua ${randomFrom(['das Flores', 'Brasil', 'São Paulo', 'Voluntários', 'Augusta'])}, ${randomBetween(1, 999)} - ${randomFrom(['Centro', 'Jardins', 'Vila Mariana', 'Pinheiros'])}`,
+      studentIds: [studentId],
+    });
+    
+    // Create student
     students.push({
-      id: `std-${i + 1}`,
+      id: studentId,
       name: `${firstName} ${lastName}`,
       birthDate: format(birthDate, 'yyyy-MM-dd'),
       age,
@@ -180,18 +200,12 @@ const generateStudents = (): Student[] => {
       status: Math.random() > 0.1 ? 'ativo' : (Math.random() > 0.5 ? 'inativo' : 'trancado'),
       paymentStatus,
       monthlyFee,
-      guardian: {
-        name: `${randomFrom(['Maria', 'Ana', 'Claudia', 'Patricia', 'Fernanda'])} ${lastName}`,
-        phone: `(11) 9${randomBetween(1000, 9999)}-${randomBetween(1000, 9999)}`,
-        email: `responsavel.${lastName.toLowerCase()}@email.com`,
-        cpf: `${randomBetween(100, 999)}.${randomBetween(100, 999)}.${randomBetween(100, 999)}-${randomBetween(10, 99)}`,
-        relationship: randomFrom(['Mãe', 'Pai', 'Avó', 'Avô', 'Tio(a)']),
-      },
+      guardianId,
       paymentHistory,
     });
   }
   
-  return students;
+  return { guardians, students };
 };
 
 // Generate transactions for the last 6 months
@@ -346,5 +360,7 @@ const generateTransactions = (students: Student[]): Transaction[] => {
   return transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 };
 
-export const students = generateStudents();
+const generatedData = generateGuardiansAndStudents();
+export const guardians = generatedData.guardians;
+export const students = generatedData.students;
 export const transactions = generateTransactions(students);
