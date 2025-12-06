@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
 import { TrendingUp, TrendingDown, Wallet, BarChart3 } from 'lucide-react';
-import { subMonths, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { useStore } from '@/store/useStore';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { RevenueChart } from '@/components/dashboard/RevenueChart';
 import { CategoryChart } from '@/components/dashboard/CategoryChart';
 import { TransactionList } from '@/components/finance/TransactionList';
+import { TransactionModal } from '@/components/finance/TransactionModal';
 
 export default function Finance() {
   const { getFilteredTransactions, selectedBranchId, branches } = useStore();
@@ -62,14 +63,17 @@ export default function Finance() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-semibold">Financeiro</h1>
-        <p className="text-muted-foreground">
-          {selectedBranchId === 'all' 
-            ? 'Controle financeiro consolidado'
-            : `Finanças da ${selectedBranch?.name}`
-          }
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">Financeiro</h1>
+          <p className="text-muted-foreground">
+            {selectedBranchId === 'all' 
+              ? 'Controle financeiro consolidado'
+              : `Finanças da ${selectedBranch?.name}`
+            }
+          </p>
+        </div>
+        <TransactionModal />
       </div>
 
       {/* Stats */}
