@@ -28,7 +28,7 @@ export function RecentTransactions() {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-base font-semibold">Últimas Transações</CardTitle>
+        <CardTitle className="text-base font-semibold">Últimas Transações de Caixa</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
         <div className="divide-y divide-border">

@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus } from 'lucide-react';
+import { Plus, User, Link as LinkIcon, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { useStore } from '@/store/useStore';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 const transactionSchema = z.object({
   type: z.enum(['receita', 'despesa'], {
@@ -50,13 +52,20 @@ const transactionSchema = z.object({
     message: 'Descrição deve ter no máximo 100 caracteres',
   }),
   date: z.string().optional(),
+  guardianId: z.string().optional(),
 });
 
 type TransactionFormData = z.infer<typeof transactionSchema>;
 
 export function TransactionModal() {
   const [open, setOpen] = useState(false);
-  const { categories, selectedBranchId, branches, addTransaction } = useStore();
+  const [showGuardianLink, setShowGuardianLink] = useState(false);
+  const { categories, selectedBranchId, branches, addTransaction, guardians } = useStore();
+
+  const sortedGuardians = useMemo(() =>
+    [...guardians].sort((a, b) => a.name.localeCompare(b.name)),
+    [guardians]
+  );
 
   const form = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
@@ -73,14 +82,24 @@ export function TransactionModal() {
 
   const onSubmit = (data: TransactionFormData) => {
     const branchId = selectedBranchId === 'all' ? branches[1]?.id || 'centro' : selectedBranchId;
-    
+
+    // Auto-append guardian name to description if linked and description doesn't already have it
+    let finalDescription = data.description.trim();
+    if (data.guardianId) {
+      const guardian = guardians.find(g => g.id === data.guardianId);
+      if (guardian && !finalDescription.toLowerCase().includes(guardian.name.toLowerCase())) {
+        finalDescription += ` - Pago por ${guardian.name}`;
+      }
+    }
+
     addTransaction({
       date: data.date || format(new Date(), 'yyyy-MM-dd'),
-      description: data.description.trim(),
+      description: finalDescription,
       amount: Number(data.amount),
       type: data.type,
       categoryId: data.categoryId,
       branchId,
+      guardianId: data.guardianId,
     });
 
     toast({
@@ -89,6 +108,7 @@ export function TransactionModal() {
     });
 
     form.reset();
+    setShowGuardianLink(false);
     setOpen(false);
   };
 
@@ -119,6 +139,10 @@ export function TransactionModal() {
                     onValueChange={(value) => {
                       field.onChange(value);
                       form.setValue('categoryId', '');
+                      if (value === 'despesa') {
+                        setShowGuardianLink(false);
+                        form.setValue('guardianId', undefined);
+                      }
                     }}
                     defaultValue={field.value}
                   >
@@ -161,6 +185,55 @@ export function TransactionModal() {
                 </FormItem>
               )}
             />
+
+            {selectedType === 'receita' && (
+              <div className="space-y-3 p-3 border rounded-md bg-muted/20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <LinkIcon className="h-4 w-4 text-muted-foreground" />
+                    <Label htmlFor="link-guardian" className="text-sm font-medium cursor-pointer">
+                      Vincular a responsável
+                    </Label>
+                  </div>
+                  <Switch
+                    id="link-guardian"
+                    checked={showGuardianLink}
+                    onCheckedChange={(checked) => {
+                      setShowGuardianLink(checked);
+                      if (!checked) {
+                        form.setValue('guardianId', undefined);
+                      }
+                    }}
+                  />
+                </div>
+
+                {showGuardianLink && (
+                  <FormField
+                    control={form.control}
+                    name="guardianId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o responsável" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="bg-background max-h-[200px]">
+                            {sortedGuardians.map((guardian) => (
+                              <SelectItem key={guardian.id} value={guardian.id}>
+                                {guardian.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+            )}
 
             <FormField
               control={form.control}

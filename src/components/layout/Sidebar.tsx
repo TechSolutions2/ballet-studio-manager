@@ -6,7 +6,7 @@ import {
   Settings, 
   ChevronLeft,
   ChevronRight,
-  GraduationCap
+  ContactRound,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/store/useStore';
@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Alunos', href: '/alunos', icon: Users },
-  { name: 'Responsáveis', href: '/responsaveis', icon: GraduationCap },
+  { name: 'Responsáveis', href: '/responsaveis', icon: ContactRound },
   { name: 'Financeiro', href: '/financeiro', icon: Wallet },
   { name: 'Configurações', href: '/configuracoes', icon: Settings },
 ];
@@ -46,11 +46,9 @@ export function Sidebar() {
         <div className="flex h-16 items-center justify-between px-4 border-b border-sidebar-border">
           {sidebarOpen && (
             <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-                <GraduationCap className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <span className="text-lg font-semibold text-sidebar-foreground">
-                BalletManager
+              <img className="size-20" src="/icons/bailarinavermelha_1.png" alt="" />
+              <span className="text-sm font-semibold text-white">
+                Studio de Dança
               </span>
             </div>
           )}
@@ -58,7 +56,7 @@ export function Sidebar() {
             variant="ghost"
             size="icon"
             onClick={toggleSidebar}
-            className="hidden lg:flex h-8 w-8 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+            className="hidden lg:flex h-8 w-8 text-white/70 hover:text-white hover:bg-sidebar-accent"
           >
             {sidebarOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </Button>
@@ -92,7 +90,7 @@ export function Sidebar() {
         {sidebarOpen && (
           <div className="border-t border-sidebar-border p-4">
             <p className="text-xs text-sidebar-foreground/50">
-              © 2024 BalletManager
+              © 2025 - VV Sistemas  - Todos os Direitos Reservados
             </p>
           </div>
         )}

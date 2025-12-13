@@ -1,64 +1,19 @@
-import { useMemo } from 'react';
-import { TrendingUp, TrendingDown, Wallet, BarChart3 } from 'lucide-react';
-import { parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { useStore } from '@/store/useStore';
-import { StatCard } from '@/components/dashboard/StatCard';
-import { RevenueChart } from '@/components/dashboard/RevenueChart';
-import { CategoryChart } from '@/components/dashboard/CategoryChart';
+import { useAuthStore } from '@/store/useAuthStore';
 import { TransactionList } from '@/components/finance/TransactionList';
 import { TransactionModal } from '@/components/finance/TransactionModal';
+import { FinanceSummary } from '@/components/finance/FinanceSummary';
+import { TuitionManagement } from '@/components/finance/TuitionManagement';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { BarChart3, List, Receipt } from 'lucide-react';
 
 export default function Finance() {
   const { getFilteredTransactions, selectedBranchId, branches } = useStore();
+  const { user } = useAuthStore();
   const transactions = getFilteredTransactions();
 
-  const stats = useMemo(() => {
-    const now = new Date();
-    const currentMonthStart = startOfMonth(now);
-    const currentMonthEnd = endOfMonth(now);
-
-    const currentMonthTx = transactions.filter(t => {
-      const txDate = parseISO(t.date);
-      return isWithinInterval(txDate, { start: currentMonthStart, end: currentMonthEnd });
-    });
-
-    const totalReceitas = transactions
-      .filter(t => t.type === 'receita')
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const totalDespesas = transactions
-      .filter(t => t.type === 'despesa')
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const currentReceitas = currentMonthTx
-      .filter(t => t.type === 'receita')
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const currentDespesas = currentMonthTx
-      .filter(t => t.type === 'despesa')
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    return {
-      totalReceitas,
-      totalDespesas,
-      saldoTotal: totalReceitas - totalDespesas,
-      currentReceitas,
-      currentDespesas,
-      saldoMes: currentReceitas - currentDespesas,
-      transactionCount: transactions.length,
-    };
-  }, [transactions]);
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
-
   const selectedBranch = branches.find(b => b.id === selectedBranchId);
+  const isEmployee = user?.role === 'employee';
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -67,7 +22,7 @@ export default function Finance() {
         <div>
           <h1 className="text-2xl font-semibold">Financeiro</h1>
           <p className="text-muted-foreground">
-            {selectedBranchId === 'all' 
+            {selectedBranchId === 'all'
               ? 'Controle financeiro consolidado'
               : `Finanças da ${selectedBranch?.name}`
             }
@@ -76,46 +31,39 @@ export default function Finance() {
         <TransactionModal />
       </div>
 
-      {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Total Receitas (6 meses)"
-          value={formatCurrency(stats.totalReceitas)}
-          icon={TrendingUp}
-          iconColor="text-success"
-        />
-        <StatCard
-          title="Total Despesas (6 meses)"
-          value={formatCurrency(stats.totalDespesas)}
-          icon={TrendingDown}
-          iconColor="text-destructive"
-        />
-        <StatCard
-          title="Saldo Período"
-          value={formatCurrency(stats.saldoTotal)}
-          change={stats.saldoTotal >= 0 ? 'Positivo' : 'Negativo'}
-          changeType={stats.saldoTotal >= 0 ? 'positive' : 'negative'}
-          icon={Wallet}
-          iconColor="text-primary"
-        />
-        <StatCard
-          title="Transações"
-          value={stats.transactionCount.toString()}
-          change="Últimos 6 meses"
-          changeType="neutral"
-          icon={BarChart3}
-          iconColor="text-info"
-        />
-      </div>
+      {/* Tabs */}
+      <Tabs defaultValue={isEmployee ? "tuition" : "summary"} className="w-full">
+        <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
+          {!isEmployee && (
+            <TabsTrigger value="summary" className="gap-2">
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Resumo</span>
+            </TabsTrigger>
+          )}
+          <TabsTrigger value="transactions" className="gap-2">
+            <List className="h-4 w-4" />
+            <span className="hidden sm:inline">Transações</span>
+          </TabsTrigger>
+          <TabsTrigger value="tuition" className="gap-2">
+            <Receipt className="h-4 w-4" />
+            <span className="hidden sm:inline">Mensalidades</span>
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Charts */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <RevenueChart />
-        <CategoryChart type="despesa" title="Despesas por Categoria" />
-      </div>
+        {!isEmployee && (
+          <TabsContent value="summary" className="mt-6">
+            <FinanceSummary transactions={transactions} />
+          </TabsContent>
+        )}
 
-      {/* Transactions */}
-      <TransactionList transactions={transactions} />
+        <TabsContent value="transactions" className="mt-6">
+          <TransactionList transactions={transactions} />
+        </TabsContent>
+
+        <TabsContent value="tuition" className="mt-6">
+          <TuitionManagement />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

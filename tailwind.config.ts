@@ -15,6 +15,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        'great-vibes': ['"Great Vibes"', 'cursive'],
       },
       colors: {
         border: "hsl(var(--border))",

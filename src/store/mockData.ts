@@ -21,6 +21,21 @@ export interface Guardian {
   relationship: string;
   address?: string;
   studentIds: string[];
+  wallet: Wallet;
+}
+
+export interface Wallet {
+  balance: number; // Positive means debt (owes money), negative could mean credit
+  ledger: LedgerEntry[];
+}
+
+export interface LedgerEntry {
+  id: string;
+  date: string;
+  description: string;
+  amount: number;
+  type: 'debit' | 'credit'; // debit = charge (increase debt), credit = payment (decrease debt)
+  category: 'tuition' | 'costume' | 'material' | 'other';
 }
 
 export interface PaymentHistory {
@@ -48,6 +63,16 @@ export interface Student {
   guardianId: string;
   paymentHistory: PaymentHistory[];
   photoUrl?: string;
+  scholarship?: {
+    type: 'percentage' | 'fixed';
+    value: number;
+  };
+  costume?: {
+    purchased: boolean;
+    totalAmount: number;
+    installments: number;
+    paidAmount: number;
+  };
 }
 
 export type TransactionType = 'receita' | 'despesa';
@@ -68,6 +93,7 @@ export interface Transaction {
   categoryId: string;
   branchId: string;
   studentId?: string;
+  guardianId?: string;
 }
 
 // Branches
@@ -120,11 +146,11 @@ const generatePaymentHistory = (enrollmentDate: Date, monthlyFee: number): Payme
   const history: PaymentHistory[] = [];
   const now = new Date();
   let currentDate = new Date(enrollmentDate);
-  
+
   while (currentDate <= now) {
     const isPaid = Math.random() > 0.15;
     const monthRef = format(currentDate, 'MM/yyyy');
-    
+
     history.push({
       id: `pay-${Date.now()}-${Math.random()}`,
       date: isPaid ? format(addMonths(currentDate, 0), 'yyyy-MM-dd') : '',
@@ -132,10 +158,10 @@ const generatePaymentHistory = (enrollmentDate: Date, monthlyFee: number): Payme
       status: isPaid ? 'pago' : (Math.random() > 0.5 ? 'pendente' : 'atrasado'),
       reference: monthRef,
     });
-    
+
     currentDate = addMonths(currentDate, 1);
   }
-  
+
   return history.slice(-12);
 };
 
@@ -144,35 +170,35 @@ const generateGuardiansAndStudents = (): { guardians: Guardian[]; students: Stud
   const guardians: Guardian[] = [];
   const students: Student[] = [];
   const branchIds = ['centro', 'zona-sul', 'zona-norte'];
-  
-  for (let i = 0; i < 60; i++) {
+
+  for (let i = 0; i < 300; i++) {
     const firstName = randomFrom(firstNames);
     const lastName = randomFrom(lastNames);
     const level = randomFrom(levels);
     const branchId = randomFrom(branchIds);
-    const birthYear = level === 'Baby Class' ? randomBetween(2019, 2021) : 
-                      level === 'Iniciante' ? randomBetween(2015, 2018) :
-                      level === 'Preparatório' ? randomBetween(2012, 2016) :
-                      level === 'Intermediário' ? randomBetween(2008, 2014) :
-                      level === 'Avançado' ? randomBetween(2004, 2012) :
-                      randomBetween(2000, 2010);
+    const birthYear = level === 'Baby Class' ? randomBetween(2019, 2021) :
+      level === 'Iniciante' ? randomBetween(2015, 2018) :
+        level === 'Preparatório' ? randomBetween(2012, 2016) :
+          level === 'Intermediário' ? randomBetween(2008, 2014) :
+            level === 'Avançado' ? randomBetween(2004, 2012) :
+              randomBetween(2000, 2010);
     const birthDate = new Date(birthYear, randomBetween(0, 11), randomBetween(1, 28));
     const age = new Date().getFullYear() - birthYear;
     const enrollmentDate = subMonths(new Date(), randomBetween(1, 36));
-    const monthlyFee = level === 'Baby Class' ? 280 : 
-                       level === 'Iniciante' ? 320 :
-                       level === 'Preparatório' ? 380 :
-                       level === 'Intermediário' ? 420 :
-                       level === 'Avançado' ? 480 : 520;
-    
+    const monthlyFee = level === 'Baby Class' ? 70 :
+      level === 'Iniciante' ? 100 :
+        level === 'Preparatório' ? 150 :
+          level === 'Intermediário' ? 200 :
+            level === 'Avançado' ? 250 : 300;
+
     const paymentHistory = generatePaymentHistory(enrollmentDate, monthlyFee);
     const lastPayment = paymentHistory[paymentHistory.length - 1];
-    const paymentStatus: PaymentStatus = lastPayment?.status === 'pago' ? 'em_dia' : 
-                                          lastPayment?.status === 'pendente' ? 'pendente' : 'atrasado';
-    
+    const paymentStatus: PaymentStatus = lastPayment?.status === 'pago' ? 'em_dia' :
+      lastPayment?.status === 'pendente' ? 'pendente' : 'atrasado';
+
     const studentId = `std-${i + 1}`;
     const guardianId = `grd-${i + 1}`;
-    
+
     // Create guardian
     guardians.push({
       id: guardianId,
@@ -183,10 +209,18 @@ const generateGuardiansAndStudents = (): { guardians: Guardian[]; students: Stud
       relationship: randomFrom(['Mãe', 'Pai', 'Avó', 'Avô', 'Tio(a)']),
       address: `Rua ${randomFrom(['das Flores', 'Brasil', 'São Paulo', 'Voluntários', 'Augusta'])}, ${randomBetween(1, 999)} - ${randomFrom(['Centro', 'Jardins', 'Vila Mariana', 'Pinheiros'])}`,
       studentIds: [studentId],
+      wallet: {
+        balance: 0,
+        ledger: [],
+      }
     });
-    
+
+    const isScholarship = Math.random() > 0.8;
+    const isCostume = Math.random() > 0.6;
+    const costumePrice = randomBetween(150, 300);
+
     // Create student
-    students.push({
+    const newStudent: Student = {
       id: studentId,
       name: `${firstName} ${lastName}`,
       birthDate: format(birthDate, 'yyyy-MM-dd'),
@@ -202,9 +236,64 @@ const generateGuardiansAndStudents = (): { guardians: Guardian[]; students: Stud
       monthlyFee,
       guardianId,
       paymentHistory,
-    });
+      scholarship: isScholarship ? {
+        type: Math.random() > 0.5 ? 'percentage' : 'fixed',
+        value: Math.random() > 0.5 ? 10 : 50,
+      } : undefined,
+      costume: isCostume ? {
+        purchased: true,
+        totalAmount: costumePrice,
+        installments: randomBetween(1, 3),
+        paidAmount: Math.random() > 0.5 ? costumePrice : 0,
+      } : undefined,
+    };
+
+    // Update guardian wallet based on student
+    const guardian = guardians.find(g => g.id === guardianId);
+    if (guardian) {
+      // Mock some initial debt: Tuition * 10 (yearly contract)
+      const contractValue = monthlyFee * 10;
+      guardian.wallet.ledger.push({
+        id: `ldg-${Date.now()}-${i}-1`,
+        date: format(enrollmentDate, 'yyyy-MM-dd'),
+        description: `Contrato Anual - ${newStudent.name}`,
+        amount: contractValue,
+        type: 'debit',
+        category: 'tuition'
+      });
+      guardian.wallet.balance += contractValue;
+
+      // Add costume debt if applicable
+      if (newStudent.costume?.purchased) {
+        guardian.wallet.ledger.push({
+          id: `ldg-${Date.now()}-${i}-2`,
+          date: format(enrollmentDate, 'yyyy-MM-dd'),
+          description: `Figurino - ${newStudent.name}`,
+          amount: newStudent.costume.totalAmount,
+          type: 'debit',
+          category: 'costume'
+        });
+        guardian.wallet.balance += newStudent.costume.totalAmount;
+      }
+
+      // Simulate Payments to reduce balance (so not everyone has huge debt)
+      // Improve probability of payments:
+      const paidAmount = guardian.wallet.balance * (randomBetween(50, 95) / 100);
+
+      guardian.wallet.ledger.push({
+        id: `ldg-${Date.now()}-${i}-3`,
+        date: format(new Date(), 'yyyy-MM-dd'),
+        description: `Pagamentos parciais acumulados`,
+        amount: paidAmount,
+        type: 'credit',
+        category: 'other'
+      });
+      guardian.wallet.balance -= paidAmount;
+    }
+
+    students.push(newStudent);
   }
-  
+
   return { guardians, students };
 };
 
@@ -213,16 +302,17 @@ const generateTransactions = (students: Student[]): Transaction[] => {
   const transactions: Transaction[] = [];
   const branchIds = ['centro', 'zona-sul', 'zona-norte'];
   const now = new Date();
-  
+
   for (let monthOffset = 5; monthOffset >= 0; monthOffset--) {
     const monthDate = subMonths(now, monthOffset);
-    
+
     branchIds.forEach(branchId => {
       const branchStudents = students.filter(s => s.branchId === branchId && s.status === 'ativo');
-      
+
       // Mensalidades
       branchStudents.forEach(student => {
-        if (Math.random() > 0.12) {
+        // High probability of payment (95%)
+        if (Math.random() > 0.05) {
           transactions.push({
             id: `trx-${Date.now()}-${Math.random()}`,
             date: format(new Date(monthDate.getFullYear(), monthDate.getMonth(), randomBetween(1, 10)), 'yyyy-MM-dd'),
@@ -235,7 +325,7 @@ const generateTransactions = (students: Student[]): Transaction[] => {
           });
         }
       });
-      
+
       // Matrículas (ocasionalmente)
       if (Math.random() > 0.7) {
         transactions.push({
@@ -248,7 +338,7 @@ const generateTransactions = (students: Student[]): Transaction[] => {
           branchId,
         });
       }
-      
+
       // Venda de uniformes
       for (let i = 0; i < randomBetween(2, 6); i++) {
         transactions.push({
@@ -261,87 +351,87 @@ const generateTransactions = (students: Student[]): Transaction[] => {
           branchId,
         });
       }
-      
-      // Despesas fixas
+
+      // Despesas fixas (valores reduzidos)
       transactions.push({
         id: `trx-${Date.now()}-${Math.random()}`,
         date: format(new Date(monthDate.getFullYear(), monthDate.getMonth(), 5), 'yyyy-MM-dd'),
         description: 'Aluguel mensal',
-        amount: branchId === 'centro' ? 4500 : branchId === 'zona-sul' ? 5200 : 3800,
+        amount: branchId === 'centro' ? 1500 : branchId === 'zona-sul' ? 1800 : 1200,
         type: 'despesa',
         categoryId: 'desp-aluguel',
         branchId,
       });
-      
-      // Salários professores
-      const numProfessors = branchId === 'centro' ? 4 : branchId === 'zona-sul' ? 5 : 3;
+
+      // Salários professores (valores reduzidos)
+      const numProfessors = branchId === 'centro' ? 2 : branchId === 'zona-sul' ? 3 : 2;
       for (let i = 0; i < numProfessors; i++) {
         transactions.push({
           id: `trx-${Date.now()}-${Math.random()}`,
           date: format(new Date(monthDate.getFullYear(), monthDate.getMonth(), 5), 'yyyy-MM-dd'),
           description: `Professora ${i + 1}`,
-          amount: randomBetween(2500, 4000),
+          amount: randomBetween(800, 1500),
           type: 'despesa',
           categoryId: 'desp-professores',
           branchId,
         });
       }
-      
-      // Utilidades
+
+      // Utilidades (valores reduzidos)
       transactions.push({
         id: `trx-${Date.now()}-${Math.random()}`,
         date: format(new Date(monthDate.getFullYear(), monthDate.getMonth(), 15), 'yyyy-MM-dd'),
         description: 'Energia elétrica',
-        amount: randomBetween(400, 800),
-        type: 'despesa',
-        categoryId: 'desp-utilidades',
-        branchId,
-      });
-      
-      transactions.push({
-        id: `trx-${Date.now()}-${Math.random()}`,
-        date: format(new Date(monthDate.getFullYear(), monthDate.getMonth(), 10), 'yyyy-MM-dd'),
-        description: 'Água',
         amount: randomBetween(150, 300),
         type: 'despesa',
         categoryId: 'desp-utilidades',
         branchId,
       });
-      
+
       transactions.push({
         id: `trx-${Date.now()}-${Math.random()}`,
-        date: format(new Date(monthDate.getFullYear(), monthDate.getMonth(), 8), 'yyyy-MM-dd'),
-        description: 'Internet',
-        amount: 200,
+        date: format(new Date(monthDate.getFullYear(), monthDate.getMonth(), 10), 'yyyy-MM-dd'),
+        description: 'Água',
+        amount: randomBetween(80, 150),
         type: 'despesa',
         categoryId: 'desp-utilidades',
         branchId,
       });
-      
-      // Manutenção ocasional
-      if (Math.random() > 0.6) {
+
+      transactions.push({
+        id: `trx-${Date.now()}-${Math.random()}`,
+        date: format(new Date(monthDate.getFullYear(), monthDate.getMonth(), 8), 'yyyy-MM-dd'),
+        description: 'Internet',
+        amount: 100,
+        type: 'despesa',
+        categoryId: 'desp-utilidades',
+        branchId,
+      });
+
+      // Manutenção ocasional (valores reduzidos)
+      if (Math.random() > 0.7) {
         transactions.push({
           id: `trx-${Date.now()}-${Math.random()}`,
           date: format(new Date(monthDate.getFullYear(), monthDate.getMonth(), randomBetween(1, 28)), 'yyyy-MM-dd'),
           description: randomFrom(['Reparo ar-condicionado', 'Manutenção piso', 'Pintura', 'Conserto espelhos']),
-          amount: randomBetween(200, 1500),
+          amount: randomBetween(100, 500),
           type: 'despesa',
           categoryId: 'desp-manutencao',
           branchId,
         });
       }
-      
-      // Limpeza
+
+      // Limpeza (valores reduzidos)
       transactions.push({
         id: `trx-${Date.now()}-${Math.random()}`,
         date: format(new Date(monthDate.getFullYear(), monthDate.getMonth(), 1), 'yyyy-MM-dd'),
         description: 'Serviço de limpeza mensal',
-        amount: randomBetween(800, 1200),
+        amount: randomBetween(300, 500),
         type: 'despesa',
         categoryId: 'desp-limpeza',
         branchId,
       });
-      
+
       // Marketing ocasional
       if (Math.random() > 0.7) {
         transactions.push({
@@ -356,7 +446,7 @@ const generateTransactions = (students: Student[]): Transaction[] => {
       }
     });
   }
-  
+
   return transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 };
 
@@ -364,3 +454,49 @@ const generatedData = generateGuardiansAndStudents();
 export const guardians = generatedData.guardians;
 export const students = generatedData.students;
 export const transactions = generateTransactions(students);
+
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  time: string;
+  read: boolean;
+  type: 'info' | 'warning' | 'success';
+}
+
+export const notifications: Notification[] = [
+  {
+    id: '1',
+    title: 'Mensalidades a receber',
+    message: 'Há 5 mensalidades pendentes vencendo hoje. Confira agora.',
+    time: 'Há 2 horas',
+    read: false,
+    type: 'warning',
+  },
+  {
+    id: '2',
+    title: 'Pagamento recebido',
+    message: 'Maria Silva (Responsável por: Ana Silva) realizou o pagamento via PIX.',
+    time: 'Há 30 minutos',
+    read: false,
+    type: 'success',
+  },
+  {
+    id: '3',
+    title: 'Nova matrícula',
+    message: 'Novo aluno matriculado na Unidade Centro: Pedro Santos.',
+    time: 'Há 4 horas',
+    read: true,
+    type: 'info',
+  },
+  {
+    id: '4',
+    title: 'Pagamento recebido',
+    message: 'Roberto Oliveira (Responsável por: Julia Oliveira) realizou o pagamento em dinheiro.',
+    time: 'Há 5 horas',
+    read: true,
+    type: 'success',
+  },
+];
+
+

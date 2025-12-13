@@ -45,6 +45,12 @@ const studentSchema = z.object({
   class: z.string().min(1, 'Selecione a turma'),
   branchId: z.string().min(1, 'Selecione a unidade'),
   monthlyFee: z.number().min(1, 'Valor da mensalidade é obrigatório'),
+  monthlyFeeDate: z.string().min(1, 'Data de pagamento é obrigatória'),
+  scholarshipType: z.enum(['none', 'percentage', 'fixed']),
+  scholarshipValue: z.string().optional(),
+  buyCostume: z.boolean(),
+  costumeValue: z.string().optional(),
+  costumeInstallments: z.string().optional(),
 });
 
 type GuardianForm = z.infer<typeof guardianSchema>;
@@ -75,10 +81,10 @@ export function StudentModal() {
   const [guardianTab, setGuardianTab] = useState<'new' | 'existing'>('new');
   const [selectedGuardianId, setSelectedGuardianId] = useState<string>('');
   const [createdGuardianId, setCreatedGuardianId] = useState<string>('');
-  
+
   const { toast } = useToast();
   const { branches, guardians, addGuardian, addStudent } = useStore();
-  
+
   const guardianForm = useForm<GuardianForm>({
     resolver: zodResolver(guardianSchema),
     defaultValues: {
@@ -101,7 +107,13 @@ export function StudentModal() {
       level: '',
       class: '',
       branchId: '',
-      monthlyFee: 280,
+      monthlyFee: 70,
+      monthlyFeeDate: '',
+      scholarshipType: 'none',
+      scholarshipValue: '',
+      buyCostume: false,
+      costumeValue: '',
+      costumeInstallments: '1',
     },
   });
 
@@ -132,7 +144,7 @@ export function StudentModal() {
 
   const handleStudentSubmit = (data: StudentForm) => {
     const guardianId = guardianTab === 'new' ? createdGuardianId : selectedGuardianId;
-    
+
     if (!guardianId) {
       toast({ title: 'Erro', description: 'Responsável não selecionado', variant: 'destructive' });
       return;
@@ -148,6 +160,15 @@ export function StudentModal() {
       branchId: data.branchId,
       monthlyFee: data.monthlyFee,
       guardianId,
+      scholarship: data.scholarshipType !== 'none' ? {
+        type: data.scholarshipType as 'percentage' | 'fixed',
+        value: Number(data.scholarshipValue),
+      } : undefined,
+      costume: data.buyCostume ? {
+        purchased: true,
+        totalAmount: Number(data.costumeValue),
+        installments: Number(data.costumeInstallments),
+      } : undefined,
     });
 
     toast({ title: 'Aluno cadastrado!', description: 'O aluno foi adicionado com sucesso.' });
@@ -451,7 +472,98 @@ export function StudentModal() {
                     {...studentForm.register('monthlyFee', { valueAsNumber: true })}
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="student-fee">Data para pagamento da mensalidade</Label>
+                  <Input
+                    id="student-fee"
+                    type="date"
+                    {...studentForm.register('monthlyFeeDate')}
+                  />
+                </div>
+
+                {/* Scholarship Section */}
+                <div className="space-y-4 pt-4 border-t sm:col-span-2">
+                  <h3 className="font-semibold text-sm">Bolsa de Estudos</h3>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="scholarship-type">Tipo de Bolsa</Label>
+                      <Select
+                        value={studentForm.watch('scholarshipType')}
+                        onValueChange={(v) => studentForm.setValue('scholarshipType', v as 'none' | 'percentage' | 'fixed')}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Nenhuma</SelectItem>
+                          <SelectItem value="percentage">Porcentagem (%)</SelectItem>
+                          <SelectItem value="fixed">Valor Fixo (R$)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {studentForm.watch('scholarshipType') !== 'none' && (
+                      <div className="space-y-2">
+                        <Label htmlFor="scholarship-value">
+                          {studentForm.watch('scholarshipType') === 'percentage' ? 'Porcentagem (%)' : 'Valor (R$)'}
+                        </Label>
+                        <Input
+                          id="scholarship-value"
+                          type="number"
+                          placeholder="0"
+                          {...studentForm.register('scholarshipValue')}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Costume Section */}
+                <div className="space-y-4 pt-4 border-t sm:col-span-2">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="buy-costume"
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      {...studentForm.register('buyCostume')}
+                    />
+                    <Label htmlFor="buy-costume" className="font-semibold text-sm">Incluir Figurino</Label>
+                  </div>
+
+                  {studentForm.watch('buyCostume') && (
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="costume-value">Valor do Figurino (R$)</Label>
+                        <Input
+                          id="costume-value"
+                          type="number"
+                          placeholder="0,00"
+                          {...studentForm.register('costumeValue')}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="costume-installments">Parcelas</Label>
+                        <Select
+                          value={studentForm.watch('costumeInstallments')}
+                          onValueChange={(v) => studentForm.setValue('costumeInstallments', v)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">À vista</SelectItem>
+                            <SelectItem value="2">2x</SelectItem>
+                            <SelectItem value="3">3x</SelectItem>
+                            <SelectItem value="4">4x</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
+
 
               <div className="flex justify-between pt-4">
                 <Button type="button" variant="outline" onClick={() => setStep('guardian')}>

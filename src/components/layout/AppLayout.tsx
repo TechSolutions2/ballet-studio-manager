@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { useStore } from '@/store/useStore';
+import { PwaInstallPrompt } from '@/components/pwa/PwaInstallPrompt';
 import { cn } from '@/lib/utils';
 
 export function AppLayout() {
@@ -18,6 +19,7 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+      <PwaInstallPrompt />
     </div>
   );
 }

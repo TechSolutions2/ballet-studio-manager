@@ -11,15 +11,22 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useStore } from '@/store/useStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { notifications } from '@/store/mockData';
 import { cn } from '@/lib/utils';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Check, Info, AlertTriangle } from 'lucide-react';
 
 export function Header() {
   const navigate = useNavigate();
   const { branches, selectedBranchId, setSelectedBranch, toggleSidebar } = useStore();
   const { user, logout } = useAuthStore();
-  
+
   const selectedBranch = branches.find(b => b.id === selectedBranchId) || branches[0];
-  
+
   const handleLogout = () => {
     logout();
     navigate('/auth');
@@ -45,8 +52,8 @@ export function Header() {
         {/* Branch selector */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="flex items-center gap-2 h-9 px-3 border-border bg-card hover:bg-accent"
             >
               <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -82,16 +89,64 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-2">
-        {/* Search */}
-        <Button variant="ghost" size="icon" className="hidden md:flex">
-          <Search className="h-5 w-5 text-muted-foreground" />
-        </Button>
+      
 
         {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5 text-muted-foreground" />
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary" />
-        </Button>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="icon" className="relative">
+              <Bell className="h-5 w-5 text-muted-foreground" />
+              {notifications.some(n => !n.read) && (
+                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary" />
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-80 p-0">
+            <div className="flex items-center justify-between border-b px-4 py-3">
+              <h4 className="font-semibold">Notificações</h4>
+              <span className="text-xs text-muted-foreground">
+                {notifications.filter(n => !n.read).length} não lidas
+              </span>
+            </div>
+            <div className="max-h-[300px] overflow-y-auto">
+              {notifications.length > 0 ? (
+                <div className="divide-y">
+                  {notifications.map((notification) => (
+                    <div
+                      key={notification.id}
+                      className={cn(
+                        "flex items-start gap-3 p-4 hover:bg-muted/50 transition-colors",
+                        !notification.read && "bg-muted/20"
+                      )}
+                    >
+                      <div className={cn(
+                        "mt-1 h-2 w-2 rounded-full shrink-0",
+                        notification.type === 'warning' && "bg-warning",
+                        notification.type === 'success' && "bg-success",
+                        notification.type === 'info' && "bg-info"
+                      )} />
+                      <div className="flex-1 space-y-1">
+                        <p className="text-sm font-medium leading-none">
+                          {notification.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {notification.message}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground pt-1">
+                          {notification.time}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 text-center text-sm text-muted-foreground">
+                  Nenhuma notificação nova
+                </div>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
 
         {/* User menu */}
         <DropdownMenu>

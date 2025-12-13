@@ -6,6 +6,7 @@ interface User {
   email: string;
   name: string;
   avatar?: string;
+  role: 'admin' | 'employee';
 }
 
 interface AuthState {
@@ -26,43 +27,47 @@ export const useAuthStore = create<AuthState>()(
 
       login: async (email: string, password: string) => {
         set({ isLoading: true });
-        
+
         // Simula delay de rede
         await new Promise(resolve => setTimeout(resolve, 800));
-        
-        // Aceita qualquer credencial
+
+        // Mock Login Logic
         if (email && password) {
+          const role = email.includes('admin') ? 'admin' : 'employee';
+
           const user: User = {
             id: `user-${Date.now()}`,
             email,
             name: email.split('@')[0],
+            role,
           };
-          
+
           set({ user, isAuthenticated: true, isLoading: false });
           return { success: true };
         }
-        
+
         set({ isLoading: false });
         return { success: false, error: 'Email e senha são obrigatórios' };
       },
 
       register: async (name: string, email: string, password: string) => {
         set({ isLoading: true });
-        
+
         // Simula delay de rede
         await new Promise(resolve => setTimeout(resolve, 800));
-        
+
         if (name && email && password) {
           const user: User = {
             id: `user-${Date.now()}`,
             email,
             name,
+            role: 'admin', // Default to admin for new registrations in this demo
           };
-          
+
           set({ user, isAuthenticated: true, isLoading: false });
           return { success: true };
         }
-        
+
         set({ isLoading: false });
         return { success: false, error: 'Todos os campos são obrigatórios' };
       },
